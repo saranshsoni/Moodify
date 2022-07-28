@@ -1,0 +1,154 @@
+import nltk
+import pandas as pd
+from nltk.corpus import stopwords
+from textblob import Word
+from sklearn.preprocessing import LabelEncoder
+from collections import Counter
+import wordcloud
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+from keras.models import Sequential
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from keras.layers import Dense, Embedding, LSTM, SpatialDropout1D
+from sklearn.model_selection import train_test_split 
+import matplotlib.pyplot as plt
+df = pd.read_csv("tweet_emotions (1).csv")
+df1 = pd.read_csv("SA_train.txt",delimiter = ';')
+df1.columns = ['verified_reviews', 'sentiment']
+df1.to_csv('SA_train.csv', index = None)
+df.rename(columns = {'content':'verified_reviews'}, inplace = True)
+df['sentiment'].unique()
+df1['sentiment'].unique()
+df1['sentiment'] = df1['sentiment'].replace(['fear'],'worry')
+df1['sentiment'] = df1['sentiment'].replace(['joy'],'happiness')
+df1['sentiment'].unique()
+df2 = pd.concat([df, df1], axis=0)
+data = {"Sentiment":['empty', 'sadness', 'enthusiasm', 'neutral', 'worry', 'surprise',
+       'love', 'fun', 'hate', 'happiness', 'boredom', 'relief', 'anger'],
+
+        "No. of Sentiments":[len(df[df.sentiment == 'empty']),len(df[df.sentiment == 'sadness']),len(df[df.sentiment == 'enthusiasm']),len(df[df.sentiment == 'neutral']),len(df[df.sentiment == 'worry']),len(df[df.sentiment == 'surprise'])
+                 ,len(df[df.sentiment == 'love']),len(df[df.sentiment == 'fun']),len(df[df.sentiment == 'hate']),len(df[df.sentiment == 'happiness']),len(df[df.sentiment == 'boredom']),len(df[df.sentiment == 'relief'])
+                 ,len(df[df.sentiment == 'anger'])]
+
+        };
+
+dataFrame = pd.DataFrame(data=data);
+dataFrame.plot.bar(x="Sentiment", y="No. of Sentiments", rot=70, title="Number of tourist visits - Year 2018");
+plt.show(block=True)
+data = {"Sentiment":['empty', 'sadness', 'enthusiasm', 'neutral', 'worry', 'surprise',
+       'love', 'fun', 'hate', 'happiness', 'boredom', 'relief', 'anger'],
+
+        "No. of Sentiments":[len(df1[df1.sentiment == 'empty']),len(df1[df1.sentiment == 'sadness']),len(df1[df1.sentiment == 'enthusiasm']),len(df1[df1.sentiment == 'neutral']),len(df1[df1.sentiment == 'worry']),len(df1[df1.sentiment == 'surprise'])
+                 ,len(df1[df1.sentiment == 'love']),len(df1[df1.sentiment == 'fun']),len(df1[df1.sentiment == 'hate']),len(df1[df1.sentiment == 'happiness']),len(df1[df1.sentiment == 'boredom']),len(df1[df1.sentiment == 'relief'])
+                 ,len(df1[df1.sentiment == 'anger'])]
+
+        };
+
+dataFrame = pd.DataFrame(data=data);
+dataFrame.plot.bar(x="Sentiment", y="No. of Sentiments", rot=70, title="Number of tourist visits - Year 2018");
+plt.show(block=True)
+df4 = df2[df2['sentiment'] == 'sadness']
+df4 = df4[0:3000]
+df5 = df2[df2['sentiment'] == 'happiness']
+df5 = df5[0:3000]
+df6 = df2[df2['sentiment'] == 'neutral']
+df6 = df6[0:3000]
+df7 = df2[df2['sentiment'] == 'worry']
+df7 = df7[0:3000]
+df8 = df2[df2['sentiment'] == 'love']
+df8 = df8[0:3000]
+df9 = df2[df2['sentiment'] == 'surprise']
+df9 = df9[0:3000]
+df10 = df2[df2['sentiment'] == 'anger']
+df10 = df10[0:3000]
+list2 = ['boredom','neutral', 'worry', 'sadness', 'happiness','enthusiasm','empty','love','surprise','anger','fun','hate','relief']
+df3 = df2[df2.sentiment.isin(list2) == False]
+df3 = pd.concat([df3, df4, df5, df6, df7,df8,df9], axis=0)
+df3['sentiment'].unique()
+data = {"Sentiment":['empty', 'sadness', 'enthusiasm', 'neutral', 'worry', 'surprise',
+       'love', 'fun', 'hate', 'happiness', 'boredom', 'relief', 'anger'],
+
+        "No. of Sentiments":[len(df3[df3.sentiment == 'empty']),len(df3[df3.sentiment == 'sadness']),len(df3[df3.sentiment == 'enthusiasm']),len(df3[df3.sentiment == 'neutral']),len(df3[df3.sentiment == 'worry']),len(df3[df3.sentiment == 'surprise'])
+                 ,len(df3[df3.sentiment == 'love']),len(df3[df3.sentiment == 'fun']),len(df3[df3.sentiment == 'hate']),len(df3[df3.sentiment == 'happiness']),len(df3[df3.sentiment == 'boredom']),len(df3[df3.sentiment == 'relief'])
+                 ,len(df3[df3.sentiment == 'anger'])]
+
+        };
+
+dataFrame = pd.DataFrame(data=data);
+dataFrame.plot.bar(x="Sentiment", y="No. of Sentiments", rot=70, title="Number of tourist visits - Year 2018");
+plt.show(block=True)
+def cleaning(df, stop_words):
+
+    df['verified_reviews'] = df['verified_reviews'].apply(lambda x: 
+
+            ' '.join(x.lower() for x in x.split()))
+    
+
+    # Replacing the special characters
+
+#    df['verified_reviews'] = df['verified_reviews'].str.replace('[^ws]', '')
+    
+    df["verified_reviews"] = df["verified_reviews"].str.replace('[^\w\s]','')
+    
+    
+    # Replacing the digits/numbers
+
+#    df['verified_reviews'] = df['verified_reviews'].str.replace('d', ''  )
+    
+    df['verified_reviews'] = df['verified_reviews'].str.replace('\d+', '')
+    
+    # Replacing the URLs
+    
+    df["verified_reviews"] = df["verified_reviews"].str.replace('"http\S+"','')
+    
+    # Removing stop words
+
+    df['verified_reviews'] = df['verified_reviews'].apply(lambda x: 
+
+            ' '.join(x for x in x.split() if x not in stop_words))
+    
+    
+    
+    # Lemmatization
+
+    df['verified_reviews'] = df['verified_reviews'].apply(lambda x: 
+
+            ' '.join([Word(x).lemmatize() for x in x.split()]))
+
+    return df
+
+stop_words = stopwords.words('english')
+
+data_v1 = cleaning(df3, stop_words)
+
+from textblob import TextBlob
+#data_v1.verified_reviews.apply(lambda txt: ''.join(TextBlob(txt).correct()))
+common_words=''
+for i in data_v1.verified_reviews:
+    i = str(i)
+    tokens = i.split()
+    common_words += " ".join(tokens)+" "
+wordcloud = wordcloud.WordCloud().generate(common_words)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
+lb=LabelEncoder()
+data_v1['sentiment'] = lb.fit_transform(data_v1['sentiment'])
+tokenizer = Tokenizer(num_words=1000, split=' ') 
+tokenizer.fit_on_texts(data_v1['verified_reviews'].values)
+X = tokenizer.texts_to_sequences(data_v1['verified_reviews'].values)
+X = pad_sequences(X)
+model = Sequential()
+model.add(Embedding(1000, 300, input_length = X.shape[1]))
+model.add(SpatialDropout1D(0.4))
+model.add(LSTM(176, dropout=0.2, recurrent_dropout=0.2))
+model.add(Dense(6,activation='softmax'))
+model.compile(loss = 'categorical_crossentropy', optimizer='adam', metrics = ['accuracy'])
+print(model.summary())
+y=pd.get_dummies(data_v1['sentiment'])
+#Splitting the data into training and testing
+y=pd.get_dummies(data_v1['sentiment'])
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.3, random_state = 42)
+batch_size=32
+model.fit(X_train, y_train, epochs = 5, batch_size=batch_size, verbose = 'auto')
+model.evaluate(X_test,y_test)
